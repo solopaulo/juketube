@@ -1,0 +1,18 @@
+# Application dependencies
+
+require:
+    - play
+    - play -> spring 1.0.1
+    - juketube -> gdata-client 1.0
+    - juketube -> gdata-core 1.0
+    - juketube -> gdata-media 1.0
+    - juketube -> gdata-youtube 2.0
+    - juketube -> google-collect 1.0-rc1
+    - juketube -> jsr305
+    
+repositories: 
+    - juketube: 
+       type:       local 
+       artifact:   "${application.path}/jar/[module]-[revision].jar" 
+       contains: 
+         - juketube -> * 

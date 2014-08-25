@@ -1,0 +1,45 @@
+#{extends '/index.html'/}
+<div data-role="page" id="playlist" data-title="Playlist">
+	<div data-role="header">
+		<h1>Current Playlist</h1>
+	</div>
+	
+	<div data-role="content">
+
+		<script type="text/javascript">
+			#{verbatim}var playlistItems =  ${playlistItemsJson};#{/verbatim}
+			$('#playlist').bind('pageinit',function() {
+				playlistInit();
+			});
+		</script>
+
+		<ul data-role="listview" data-theme="e">
+		#{list items:list,as:'result'}
+			<li data-icon="forward">
+				<a href="" class="playlist-item" data-rel="dialog" id='${result.playlistId}' data-transition="slidedown">${result.song.title}</a>
+				<span class="ui-li-count">${result.song.time}</span>
+			</li>
+		#{/list}
+		#{else}
+			<li>
+				<a href="/">Playlist is empty</a>
+			</li>
+		#{/else}			
+		</ul>
+	</div>
+	
+	<div data-role="footer"  data-position="fixed" role="contentinfo" class="ui-bar ui-grid-b fade">
+		<div class="ui-block-a">
+			<a data-role="button" data-icon="arrow-r" data-theme="b" data-inline="true" 
+				href="/playback">Playing..</a>
+		</div>
+		<div class="ui-block-b">
+			<a id='clear-playlist' data-role="button" data-icon="delete" data-theme="c" data-inline="true"
+				href="#">Clear</a>
+		</div>
+		<div class="ui-block-c">
+			<a data-role="button" data-theme="c" data-icon="search" 
+				data-inline="true" href="/">Search</a>
+		</div>
+	</div>
+</div>

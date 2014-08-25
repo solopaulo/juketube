@@ -1,0 +1,23 @@
+body {
+}
+#song-position { 
+	display:none;
+}
+
+#add-dialog {
+	display:none;
+}
+div.ui-slider {
+	width:90% !important;
+}
+.center-wrapper{
+	text-align: center;
+}
+.center-wrapper * {
+margin: 0 auto;
+}
+
+div[data-role="page"] {
+	background: -webkit-gradient(linear, left top, left bottom, from(#EEE), to(#777));
+	background: -moz-linear-gradient(top,  #EEE,  #777);
+}

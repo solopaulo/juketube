@@ -1,0 +1,247 @@
+#{extends '/index.html'/}
+#{set title:"Currently Playing"/}
+
+<div data-role="page" id='playback'>
+	<div data-role="header"><h1>NOW PLAYING...</h1></div>
+	<div data-role="content">
+		<script type="text/javascript">
+				//<![CDATA[			
+				#{verbatim}var songs = [${songJson}];#{/verbatim}
+				var song = songs[0];
+				var socket;
+				var tim;
+				var timcount = 0;
+				var maxtimcount = 10;
+				var cancelling,socketConnected=false;
+				var tit = '%{if ( song ) { print(song.title.escapeXml()) } else { print("No Song");} %}';
+				var seekTimeout;
+				var seeking = false;
+				var updatesOn = true;
+								
+				function turnOffUpdates() {
+					updatesOn = false;
+					setTimeout( function() {
+						updatesOn = true;
+					},5000);
+				}
+				
+				function turnOnUpdates() {
+					updatesOn = true;
+				}
+				
+				function canUpdate() {
+					return updatesOn;
+				}
+				
+				$('#playback').bind('pageinit',function() {
+					setTimeout ( function() {
+						startWebSocket();
+					},1400);
+					$('#song-position').bind('change',function(evt) {
+						turnOffUpdates();
+						clearTimeout(seekTimeout);
+						seekTimeout = setTimeout( function() {
+							seek( $('#song-position').val() );
+							turnOnUpdates();
+						},50);
+					});
+					
+					$('#volume-up').bind('click',function(evt) {
+						setVolume(1);
+					});
+					
+					$('#volume-down').bind('click',function(evt) {
+						setVolume(0);
+					});
+					$('input[name="repeat-mode"]').bind('click',function(evt) {
+						turnOffUpdates();
+						var repeatmode = $('input[name="repeat-mode"]:checked').val();
+						$.post('/playback/repeat','mode='+repeatmode,function(r) {
+							turnOnUpdates();
+						});
+					});
+				});
+				
+				function setVolume(volume) {
+					var data = 'volume='+(volume == 1 || volume == '1'?1:0);
+					$.post('/playback/volume',data);
+				}
+				
+				function seek(pos) {
+					seeking = true;
+					$.get('/playback/seek/'+pos,null,function(r) {
+						seeking = false;
+					});
+				}
+				
+				function play() {
+					if ( ! isWebSocketRunning() ) {
+						startWebSocket();
+					}
+					$.get('/play');
+					return false;
+				}
+				
+				function stop() {
+					stopWebSocket();
+					$.get('/stop');
+					return false;
+				}
+				function pause() {
+					$.get('/pause');
+					return false;
+				}
+				
+				function isWebSocketRunning() {
+					return socket !== undefined && socketConnected;
+				}
+				function toJSON(data) {
+					return eval('['+data+']');
+				}
+				function webSocketMessageReceived(resp) {
+					var status = toJSON(resp.data)[0];
+					if ( cancelling || !status ) {
+						socket.close();
+						return;
+					}
+					
+					if ( timcount > maxtimcount ) {
+						stopWebSocket();
+					}
+
+					if ( tim == resp.data.playbackTime ) {
+						timcount++;
+					} else { 
+						timcount = 0; 
+					}
+					tim = status.playbackTime;
+
+					if ( ! canUpdate() ) {
+						return;
+					}
+					
+					$('#timesofar').html(status.playbackTime);
+					if ( tit != status.playbackTitle ) {
+						tit = status.playbackTitle;
+						$('#songtitle').html(tit);
+					}
+
+					// animate song position slider
+					if ( ! seeking ) {
+						var percent = Math.floor(100 * status.playbackPosition/status.playbackDuration);
+						$('#song-position').val(percent).slider('refresh',percent,undefined,true);
+						$('#songDuration').html("("+toTime(status.playbackDuration)+")");
+					}					
+					$('#volume').html( status.playbackVolume );
+					$('input[name="repeat-mode"]').attr('checked',false);
+					$('input[name="repeat-mode"][value="'+status.repeatMode+'"]').attr('checked',true);
+					$('input[name="repeat-mode"]').checkboxradio('refresh');									
+				}		
+				
+				function toTime(seconds) {
+					var mins = Math.floor(seconds/60);
+					var hours = seconds-(mins*60);
+					
+					return mins+":"+(hours<10?"0":"")+hours;
+				}
+				
+				function stopWebSocket() {
+					if ( ! isWebSocketRunning() ) {
+						return;
+					}				
+					cancelling = true;
+					console.debug("stopping web socket");
+					socket.send("quit\n");
+					socket.close();
+				}	
+					
+				function startWebSocket() {
+					cancelling = false;
+					if ( isWebSocketRunning() ) {
+						return;
+					}					
+					var host = document.location.host;
+					console.info('starting websocket');
+					socket =  $.gracefulWebSocket("ws://"+host+"/playback/status",{fallbackPollInterval:700});
+					socket.onmessage = webSocketMessageReceived;
+					socket.onopen = function() {
+						try {
+							socketConnected = socket.send("start");
+						} catch (e) { console.info(e); }						
+					}
+					socket.onerror = function(e) {
+						socketConnected = false;
+						console.debug("socket errorred: ");						
+					}
+					socket.onclose = function(e) {
+						socketConnected = false;
+						console.debug("Socket closed...:");
+					}
+				}		
+				// !>
+			</script>
+		<h4 style='display:inline;'>Song:</h4> <em id='songtitle'>${song?.title}</em>
+
+		<div data-role="fieldcontain">
+			<input type="range" id="song-position" value="-1" min="0" max="100" data-theme="a" data-track-theme="b" />
+		</div>
+		<div class="ui-grid-a">
+			<div class="ui-block-a">
+				<h3>Time</h3>
+			</div>
+			<div class="ui-block-b">
+				<div class="ui-block-a">
+					<h3>Volume</h3>
+				</div>
+				<div class="ui-block-b">
+					<a href="" id='volume-up' data-role="button" data-theme="b" data-icon="arrow-u" data-iconpos="notext" title="Volume Up"></a>
+				</div>
+			</div>
+			
+			<div class="ui-block-a">
+				<span id='timesofar'></span> <span id='songDuration'>(${song?.time})</span>
+			</div>
+			<div class="ui-block-b ui-grid-a">
+				<div class="ui-block-a">
+					<span id='volume'>0</span>%
+				</div>
+				<div class="ui-block-b">
+					<a href="" id='volume-down' data-role="button" data-theme="b" data-icon="arrow-d" data-iconpos="notext" title="Volume Down"></a>
+				</div>
+			</div>
+			<div class="ui-block-a">
+				<h3>Repeat</h3>
+			</div>
+			
+			<div class="ui-block-b">
+			 <fieldset data-role="controlgroup">
+				<label for='repeat-none'>None</label>
+				<input id='repeat-none' type='radio' name="repeat-mode" value=""/>
+				
+				<label for='repeat-all'>All</label>
+				<input id='repeat-all' type='radio' name="repeat-mode" value="all"/>
+				
+				<label for='repeat-track'>1-Track</label>
+				<input id='repeat-track' type='radio' name="repeat-mode" value="1-track"/>
+			 </fieldset>		
+			</div>
+		</div>
+		<div class="ui-grid-b">
+			<div class="ui-block-a"><a href="javascript:play()" data-role="button" data-theme="b"><img height="32" width="32" src="/public/images/button-play.png" alt="PLAY"/></a></div>
+			<div class="ui-block-b"><a href="javascript:pause()" data-role="button" data-theme="b"><img height="32" width="32" src="/public/images/button-pause.png" alt="PAUSE"/></a></div>
+			<div class="ui-block-c"><a href="javascript:stop()" data-role="button" data-theme="b"><img height="32" width="32" src="/public/images/button-stop.png" alt="STOP"/></a></div>
+		</div>	
+	</div>
+	
+	<div data-role="footer" class="ui-bar ui-grid-b" role="contentinfo">
+		<div class="ui-block-a">
+			<a href="/search" data-role="button" data-theme="c" data-icon="back">Results</a>
+		</div>
+		<div class="ui-block-b">
+			<a href="/playlist" data-role="button" data-theme="e" data-icon="grid">Playlist</a>
+		</div>
+		<div class="ui-block-c">
+			<a href="/" data-role="button" data-theme="c" data-icon="search">Search</a>
+		</div>
+	</div>
+</div>

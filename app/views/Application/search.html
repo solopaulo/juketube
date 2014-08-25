@@ -1,0 +1,26 @@
+#{extends '/index.html'/}
+#{set title:"Hello Searchy World"/}
+
+<div data-role="page" id="startpage" data-title="Searchy Search">
+	<div data-role="header">
+		<h1>Search for choons</h1>
+	</div>
+	
+	<div data-role="content" class="ui-grid-a">
+		#{form @VideoSearchController.search() , id:'searchForm'}		
+		 	<label class="ui-hidden-accessible" for='searchfield'>Search</label>
+			<input  type="search" id="searchfield" name="search" placeholder="Song Name or Artist"/>		
+			<div class="ui-grid-a">
+				<div class="ui-block-a">
+					<a href="/playback" data-icon="arrow-r" data-role="button" data-theme="b">Playing..</a>
+				</div>
+				<div class="ui-block-b">
+					<input type="submit" data-icon="search" value="Search"/>
+				</div>
+			</div>		
+		#{/form}
+		
+
+	</div>
+	
+</div>

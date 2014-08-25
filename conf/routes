@@ -1,0 +1,36 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+# Home page
+GET		/										VideoSearchController.index
+POST	/search									VideoSearchController.search
+GET		/search									VideoSearchController.search
+POST	/play									PlayController.play(format:'json')
+GET		/play									PlayController.playExisting
+GET		/stop									PlayController.stop
+GET		/pause									PlayController.pause
+GET		/playback								PlayController.getPlaybackStatus
+GET		/playback/position						PlayController.getPlaybackPosition
+WS		/playback/position						WSPlayController.getPlaybackPosition
+WS		/playback/status						WSPlayController.getPlaybackStatus(format:'json')
+#GET		/playback/status						PlayController.getWSPlaybackStatus(format:'json')
+POST	/playback/status						PlayController.getWSPlaybackStatus(format:'json')
+GET		/playback/seek/{positionPercent}		PlayController.seek
+GET		/playback/silence						PlayController.silence
+POST	/playback/volume						PlayController.setVolume
+POST	/playback/repeat						PlayController.setRepeatMode
+GET		/playlist								PlayListController.getPlaylist
+GET 	/playlist/clear							PlayListController.clearPlaylist
+POST	/playlist/remove						PlayListController.removeFromPlaylist
+POST	/playlist/add							PlayListController.addToPlaylist
+POST	/playlist/play							PlayListController.play
+
+# Ignore favicon requests
+GET     /favicon.ico                            404
+
+# Map static resources from the /app/public folder to the /public path
+GET     /public/                                staticDir:public
+
+# Catch all
+*       /{controller}/{action}                  {controller}.{action}
